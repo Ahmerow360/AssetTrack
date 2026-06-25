@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block page_title %}{{ asset['asset_id'] }} – {{ asset['name'] }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('assets') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+<a href="{{ url_for('edit_asset', asset_id=asset['asset_id']) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
+<a href="{{ url_for('add_issue') }}?asset_id={{ asset['asset_id'] }}" class="btn btn-outline-warning btn-sm"><i class="bi bi-flag me-1"></i>Log Issue</a>
+<form method="post" action="{{ url_for('delete_asset', asset_id=asset['asset_id']) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete {{ asset['asset_id'] }}? This action cannot be undone.')">
+    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
+</form>
+{% endblock %}
+
+{% block content %}
+{% set days = days_until(asset['warranty_expiry']) %}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-info-circle me-2"></i>Asset Details</span>
+                <span class="badge badge-{{ asset['status']|lower|replace(' ','') }} fs-6">{{ asset['status'] }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Asset ID</div>
+                        <div class="detail-value"><span class="asset-id">{{ asset['asset_id'] }}</span></div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Category</div>
+                        <div class="detail-value">{{ asset['category'] }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Manufacturer</div>
+                        <div class="detail-value">{{ asset['manufacturer'] or '—' }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Serial Number</div>
+                        <div class="detail-value" style="font-family:monospace">{{ asset['serial_number'] or '—' }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value">{{ asset['location'] or '—' }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Assigned To</div>
+                        <div class="detail-value">{{ asset['assigned_to'] or '—' }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Install Date</div>
+                        <div class="detail-value">{{ format_date(asset['install_date']) }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-label">Warranty Expiry</div>
+                        <div class="detail-value {{ 'warranty-expired' if days is not none and days < 0 else 'warranty-warn' if days is not none and days < 60 else 'warranty-ok' if days is not none else '' }}">
+                            {{ format_date(asset['warranty_expiry']) }}
+                            {% if days is not none %}
+                                <small>({% if days < 0 %}Expired {{ (-days) }}d ago{% elif days == 0 %}Expires today!{% else %}{{ days }} days left{% endif %})</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if asset['notes'] %}
+                    <div class="col-12">
+                        <div class="detail-label">Notes</div>
+                        <div class="detail-value" style="color:#4b5563; font-size:13px">{{ asset['notes'] }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-clock-history me-2"></i>Add Deployment Record</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('add_deployment') }}">
+                    <input type="hidden" name="asset_id" value="{{ asset['asset_id'] }}">
+                    <div class="mb-2">
+                        <label class="form-label">Deployed To</label>
+                        <input type="text" name="deployed_to" class="form-control" placeholder="Employee / Location" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Deployed By</label>
+                        <input type="text" name="deployed_by" class="form-control" placeholder="Your name">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="deploy_date" class="form-control" value="{{ today }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Reason, notes...">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-plus me-1"></i>Record Deployment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-exclamation-circle me-2"></i>Issues ({{ issues|length }})</span>
+                <a href="{{ url_for('add_issue') }}?asset_id={{ asset['asset_id'] }}" class="btn btn-sm btn-outline-warning"><i class="bi bi-plus me-1"></i>Log</a>
+            </div>
+            <div class="card-body p-0">
+                {% if issues %}
+                <table class="table table-hover mb-0" style="font-size:13px">
+                    <thead><tr><th>Issue</th><th>Severity</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody>
+                    {% for issue in issues %}
+                    <tr>
+                        <td>{{ issue['title'] }}</td>
+                        <td><span class="badge badge-{{ issue['severity']|lower }}">{{ issue['severity'] }}</span></td>
+                        <td><span class="badge badge-{{ issue['status']|lower|replace(' ','') }}">{{ issue['status'] }}</span></td>
+                        <td style="color:#9ca3af">{{ format_date(issue['reported_date']) }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state"><i class="bi bi-check-all"></i>No issues reported</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-arrow-repeat me-2"></i>Deployment History ({{ deployments|length }})</div>
+            <div class="card-body">
+                {% if deployments %}
+                {% for d in deployments %}
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div style="font-size:13px; font-weight:500">{{ d['deployed_to'] }}</div>
+                    <div style="font-size:12px; color:#6b7280">
+                        {{ format_date(d['deploy_date']) }}
+                        {% if d['return_date'] %} → {{ format_date(d['return_date']) }}{% endif %}
+                        {% if d['deployed_by'] %} · By {{ d['deployed_by'] }}{% endif %}
+                    </div>
+                    {% if d['notes'] %}<div style="font-size:12px; color:#9ca3af; margin-top:2px">{{ d['notes'] }}</div>{% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state"><i class="bi bi-inbox"></i>No deployment records yet</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelector('input[name="deploy_date"]').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

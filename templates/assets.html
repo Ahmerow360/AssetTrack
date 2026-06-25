@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block page_title %}Assets{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('add_asset') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Asset</a>
+<a href="{{ url_for('export_csv') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Export CSV</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body pb-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Name, ID, location, assigned to..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {{ 'selected' if category == cat }}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="Active" {{ 'selected' if status == 'Active' }}>Active</option>
+                    <option value="In Repair" {{ 'selected' if status == 'In Repair' }}>In Repair</option>
+                    <option value="Retired" {{ 'selected' if status == 'Retired' }}>Retired</option>
+                    <option value="In Storage" {{ 'selected' if status == 'In Storage' }}>In Storage</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        {{ assets|length }} asset(s) found
+        {% if search or category or status %}
+        <a href="{{ url_for('assets') }}" class="ms-2 text-muted" style="font-size:12px; font-weight:400"><i class="bi bi-x-circle me-1"></i>Clear filters</a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Asset ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Location</th>
+                    <th>Assigned To</th>
+                    <th>Installed</th>
+                    <th>Warranty</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in assets %}
+            {% set days = days_until(a['warranty_expiry']) %}
+            <tr>
+                <td><span class="asset-id">{{ a['asset_id'] }}</span></td>
+                <td>
+                    <a href="{{ url_for('asset_detail', asset_id=a['asset_id']) }}" class="text-decoration-none fw-500" style="color:#111827">
+                        {{ a['name'] }}
+                    </a>
+                    {% if a['manufacturer'] %}<br><small class="text-muted">{{ a['manufacturer'] }}</small>{% endif %}
+                </td>
+                <td><span class="badge bg-light text-dark border">{{ a['category'] }}</span></td>
+                <td style="font-size:12px">{{ a['location'] or '—' }}</td>
+                <td style="font-size:12px">{{ a['assigned_to'] or '—' }}</td>
+                <td style="font-size:12px; color:#6b7280">{{ format_date(a['install_date']) }}</td>
+                <td style="font-size:12px">
+                    {% if a['warranty_expiry'] %}
+                        {% if days is not none %}
+                            <span class="{{ 'warranty-expired' if days < 0 else 'warranty-warn' if days < 60 else 'warranty-ok' }}">
+                                {% if days < 0 %}
+                                    <i class="bi bi-x-circle"></i> Expired
+                                {% elif days <= 7 %}
+                                    <i class="bi bi-alarm"></i> {{ days }}d
+                                {% elif days <= 60 %}
+                                    <i class="bi bi-exclamation-circle"></i> {{ days }}d
+                                {% else %}
+                                    <i class="bi bi-check-circle"></i> {{ days }}d
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-{{ a['status']|lower|replace(' ','') }}">{{ a['status'] }}</span>
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('asset_detail', asset_id=a['asset_id']) }}" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('edit_asset', asset_id=a['asset_id']) }}" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a href="{{ url_for('add_issue') }}?asset_id={{ a['asset_id'] }}" class="btn btn-sm btn-outline-warning" title="Log Issue"><i class="bi bi-flag"></i></a>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    No assets found. <a href="{{ url_for('add_asset') }}">Add your first asset →</a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

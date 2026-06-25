@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('add_asset') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Asset</a>
+<a href="{{ url_for('export_csv') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Export CSV</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-laptop text-primary"></i> Total Assets</div>
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-sub">Registered in system</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-check-circle text-success"></i> Active</div>
+            <div class="stat-value" style="color:#065f46">{{ active }}</div>
+            <div class="stat-sub">{% if total %}{{ ((active/total)*100)|round|int }}% operational{% endif %}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-tools text-warning"></i> In Repair</div>
+            <div class="stat-value" style="color:#92400e">{{ in_repair }}</div>
+            <div class="stat-sub">Pending resolution</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-exclamation-triangle text-danger"></i> Open Issues</div>
+            <div class="stat-value" style="color:#991b1b">{{ open_issues }}</div>
+            <div class="stat-sub">{{ critical_issues }} critical</div>
+        </div>
+    </div>
+</div>
+
+{% if expiring %}
+<div class="alert alert-warning mb-4">
+    <i class="bi bi-clock-history me-2"></i>
+    <strong>{{ expiring|length }} asset(s)</strong> have warranty expiring within 90 days —
+    {% for e in expiring[:3] %}
+        <span class="asset-id">{{ e['asset_id'] }}</span>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+    <a href="{{ url_for('assets') }}" class="alert-link ms-2">View all →</a>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-pie-chart me-2"></i>Assets by Category</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                    {% for row in by_category %}
+                    <tr>
+                        <td><i class="bi bi-circle-fill me-2" style="font-size:8px; color:var(--primary)"></i>{{ row['category'] }}</td>
+                        <td class="text-end fw-600">{{ row['cnt'] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-center text-muted py-3">No assets yet</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-geo-alt me-2"></i>Assets by Location</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                    {% for row in by_location %}
+                    <tr>
+                        <td style="font-size:13px">{{ row['location'] or '—' }}</td>
+                        <td class="text-end fw-600">{{ row['cnt'] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-center text-muted py-3">No data</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-shield-exclamation me-2"></i>Warranty Expiring</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                    {% for e in expiring %}
+                    {% set days = days_until(e['warranty_expiry']) %}
+                    <tr>
+                        <td>
+                            <span class="asset-id">{{ e['asset_id'] }}</span><br>
+                            <small class="text-muted">{{ e['name'] }}</small>
+                        </td>
+                        <td class="text-end">
+                            <small class="{{ 'warranty-expired' if days < 0 else 'warranty-warn' if days < 30 else 'warranty-ok' }}">
+                                {% if days < 0 %}Expired{% elif days == 0 %}Today!{% else %}{{ days }}d{% endif %}
+                            </small>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-center text-muted py-3">All warranties OK</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Recent Issues</span>
+        <a href="{{ url_for('issues') }}" class="btn btn-sm btn-outline-primary">View all</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Asset</th><th>Issue</th><th>Severity</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+            {% for issue in recent_issues %}
+            <tr>
+                <td><span class="asset-id">{{ issue['asset_id'] }}</span><br><small class="text-muted">{{ issue['asset_name'] }}</small></td>
+                <td>{{ issue['title'] }}</td>
+                <td><span class="badge badge-{{ issue['severity']|lower }}">{{ issue['severity'] }}</span></td>
+                <td>
+                    <span class="badge badge-{{ issue['status']|lower|replace(' ','') }}">{{ issue['status'] }}</span>
+                </td>
+                <td class="text-muted" style="font-size:12px">{{ format_date(issue['reported_date']) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="empty-state"><i class="bi bi-check-all"></i>No issues reported</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

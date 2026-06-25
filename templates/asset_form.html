@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block page_title %}{{ 'Edit Asset – ' + asset['asset_id'] if asset else 'Add New Asset' }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('assets') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Assets</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-9">
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-{{ 'pencil' if asset else 'plus-circle' }} me-2"></i>
+        {{ 'Edit Asset' if asset else 'Add New Asset' }}
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% if not asset %}
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Category <span class="text-danger">*</span></label>
+                    <select name="category" id="category-select" class="form-select" required onchange="updatePreviewId(this.value)">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Asset ID (Auto-generated)</label>
+                    <div class="p-2 rounded" style="background:#eff6ff; border:1px solid #bfdbfe; font-family:monospace; font-size:13px; color:#1e40af; font-weight:600" id="preview-id">
+                        {{ preview_ids['Laptop'] if preview_ids else 'KW-LAP-0001' }}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Asset ID</label>
+                    <div class="p-2 rounded" style="background:#eff6ff; border:1px solid #bfdbfe; font-family:monospace; font-size:13px; color:#1e40af; font-weight:600">
+                        {{ asset['asset_id'] }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Category <span class="text-danger">*</span></label>
+                    <select name="category" class="form-select" required>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {{ 'selected' if asset['category'] == cat }}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Asset Name / Model <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Dell Latitude 5540" value="{{ asset['name'] if asset else '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Manufacturer / Vendor</label>
+                    <input type="text" name="manufacturer" class="form-control" placeholder="e.g. Dell, HP, Cisco" value="{{ asset['manufacturer'] if asset else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Serial Number</label>
+                    <input type="text" name="serial_number" class="form-control" placeholder="e.g. DL-KW2934" value="{{ asset['serial_number'] if asset else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        {% for s in ['Active', 'In Repair', 'In Storage', 'Retired'] %}
+                        <option value="{{ s }}" {{ 'selected' if asset and asset['status'] == s }}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Location</label>
+                    <input type="text" name="location" class="form-control" placeholder="e.g. Head Office – Floor 2 – Finance Dept" value="{{ asset['location'] if asset else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Assigned To</label>
+                    <input type="text" name="assigned_to" class="form-control" placeholder="Employee name or department" value="{{ asset['assigned_to'] if asset else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Installation Date</label>
+                    <input type="date" name="install_date" class="form-control" value="{{ asset['install_date'] if asset else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Warranty Expiry</label>
+                    <input type="date" name="warranty_expiry" class="form-control" value="{{ asset['warranty_expiry'] if asset else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Notes / Remarks</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Configuration notes, specs, or any additional info...">{{ asset['notes'] if asset else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <a href="{{ url_for('assets') }}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>{{ 'Update Asset' if asset else 'Save Asset' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not asset %}
+<script>
+const previewIds = {{ preview_ids | tojson }};
+function updatePreviewId(cat) {
+    document.getElementById('preview-id').textContent = previewIds[cat] || 'KW-OTH-0001';
+}
+</script>
+{% endif %}
+{% endblock %}

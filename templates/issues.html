@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block page_title %}Issues{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('add_issue') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Log Issue</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">
+    <div class="card-body pb-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Issue title, asset ID..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Severity</label>
+                <select name="severity" class="form-select">
+                    <option value="">All</option>
+                    <option value="Critical" {{ 'selected' if severity == 'Critical' }}>Critical</option>
+                    <option value="High" {{ 'selected' if severity == 'High' }}>High</option>
+                    <option value="Medium" {{ 'selected' if severity == 'Medium' }}>Medium</option>
+                    <option value="Low" {{ 'selected' if severity == 'Low' }}>Low</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="Open" {{ 'selected' if status_filter == 'Open' }}>Open</option>
+                    <option value="In Progress" {{ 'selected' if status_filter == 'In Progress' }}>In Progress</option>
+                    <option value="Resolved" {{ 'selected' if status_filter == 'Resolved' }}>Resolved</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">{{ issues|length }} issue(s)</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr><th>Asset</th><th>Issue</th><th>Severity</th><th>Status</th><th>Reported By</th><th>Date</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+            {% for issue in issues %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('asset_detail', asset_id=issue['asset_id']) }}" class="text-decoration-none">
+                        <span class="asset-id">{{ issue['asset_id'] }}</span>
+                    </a><br>
+                    <small class="text-muted">{{ issue['asset_name'] }}</small>
+                </td>
+                <td>
+                    <div style="font-weight:500; font-size:13px">{{ issue['title'] }}</div>
+                    {% if issue['description'] %}<small class="text-muted">{{ issue['description'][:80] }}{% if issue['description']|length > 80 %}...{% endif %}</small>{% endif %}
+                </td>
+                <td><span class="badge badge-{{ issue['severity']|lower }}">{{ issue['severity'] }}</span></td>
+                <td><span class="badge badge-{{ issue['status']|lower|replace(' ','') }}">{{ issue['status'] }}</span></td>
+                <td style="font-size:12px">{{ issue['reported_by'] or '—' }}</td>
+                <td style="font-size:12px; color:#9ca3af">{{ format_date(issue['reported_date']) }}</td>
+                <td>
+                    {% if issue['status'] != 'Resolved' %}
+                    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#resolveModal{{ issue['id'] }}" title="Mark Resolved">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+
+                    <div class="modal fade" id="resolveModal{{ issue['id'] }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Resolve Issue</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="post" action="{{ url_for('resolve_issue', issue_id=issue['id']) }}">
+                                    <div class="modal-body">
+                                        <p class="text-muted" style="font-size:13px">Issue: <strong>{{ issue['title'] }}</strong></p>
+                                        <label class="form-label">Resolution Notes</label>
+                                        <textarea name="resolution_notes" class="form-control" rows="3" placeholder="How was this issue resolved?"></textarea>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1"></i>Mark Resolved</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <span class="text-muted" style="font-size:12px">{{ format_date(issue['resolved_date']) }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="empty-state"><i class="bi bi-check-all"></i>No issues found</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

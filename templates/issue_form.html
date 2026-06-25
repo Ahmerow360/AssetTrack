@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block page_title %}Log Issue{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('issues') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Issues</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+    <div class="card-header"><i class="bi bi-flag me-2"></i>Log New Issue</div>
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Asset <span class="text-danger">*</span></label>
+                <select name="asset_id" class="form-select" required>
+                    <option value="">Select asset...</option>
+                    {% for a in assets %}
+                    <option value="{{ a['asset_id'] }}" {{ 'selected' if prefill_asset == a['asset_id'] }}>
+                        {{ a['asset_id'] }} – {{ a['name'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Issue Title <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control" placeholder="Short description of the issue" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control" rows="4" placeholder="Detailed description of the issue, steps to reproduce, observations..."></textarea>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Severity</label>
+                    <select name="severity" class="form-select">
+                        <option>Low</option>
+                        <option selected>Medium</option>
+                        <option>High</option>
+                        <option>Critical</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option>Open</option>
+                        <option>In Progress</option>
+                        <option>Resolved</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Reported Date</label>
+                    <input type="date" name="reported_date" class="form-control" id="rep-date">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Reported By</label>
+                <input type="text" name="reported_by" class="form-control" placeholder="Your name">
+            </div>
+            <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <a href="{{ url_for('issues') }}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-flag me-1"></i>Log Issue</button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('rep-date').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

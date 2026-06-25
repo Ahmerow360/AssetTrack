@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <!-- Add New User (Admin only) -->
+  {% if current_user.role == 'admin' %}
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-plus me-2"></i>Add New User</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('add_user') }}">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-control" placeholder="e.g. john_it" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Min 6 characters" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-select">
+              <option value="viewer">Viewer (read-only)</option>
+              <option value="admin">Admin (full access)</option>
+            </select>
+            <div class="form-text">Viewers cannot delete assets or manage users.</div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-plus-lg me-1"></i>Create User
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Change My Password -->
+    <div class="card mt-3">
+      <div class="card-header"><i class="bi bi-key me-2"></i>Change My Password</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('change_password') }}">
+          <div class="mb-3">
+            <label class="form-label">Current Password</label>
+            <input type="password" name="old_password" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password" name="new_password" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-outline-primary w-100">
+            <i class="bi bi-shield-check me-1"></i>Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Users List -->
+  <div class="{{ 'col-md-8' if current_user.role == 'admin' else 'col-12' }}">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-people me-2"></i>All Users ({{ users|length }})</div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Created</th>
+              {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+          {% for user in users %}
+          <tr>
+            <td class="text-muted" style="font-size:12px">{{ user['id'] }}</td>
+            <td>
+              <i class="bi bi-person-circle me-1 text-muted"></i>
+              {{ user['username'] }}
+              {% if user['id'] == current_user.id %}
+                <span class="badge bg-primary ms-1" style="font-size:10px">You</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if user['role'] == 'admin' %}
+                <span class="badge" style="background:#fef3c7; color:#92400e;">
+                  <i class="bi bi-star-fill me-1"></i>Admin
+                </span>
+              {% else %}
+                <span class="badge bg-light text-secondary border">
+                  <i class="bi bi-eye me-1"></i>Viewer
+                </span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px; color:#9ca3af">{{ format_date(user['created_at'][:10]) }}</td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              {% if user['id'] != current_user.id %}
+              <form method="post" action="{{ url_for('delete_user', user_id=user['id']) }}"
+                    onsubmit="return confirm('Delete user {{ user['username'] }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted" style="font-size:12px">—</span>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Role Permissions Info -->
+    <div class="card mt-3">
+      <div class="card-header"><i class="bi bi-shield me-2"></i>Role Permissions</div>
+      <div class="card-body p-0">
+        <table class="table mb-0" style="font-size:13px">
+          <thead><tr><th>Action</th><th class="text-center">Admin</th><th class="text-center">Viewer</th></tr></thead>
+          <tbody>
+            <tr><td>View dashboard & assets</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+            <tr><td>Add / Edit assets</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-danger"><i class="bi bi-x-lg"></i></td></tr>
+            <tr><td>Delete assets</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-danger"><i class="bi bi-x-lg"></i></td></tr>
+            <tr><td>Log & resolve issues</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+            <tr><td>Export CSV</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+            <tr><td>Manage users</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-danger"><i class="bi bi-x-lg"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
